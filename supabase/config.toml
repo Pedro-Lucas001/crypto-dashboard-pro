@@ -1,0 +1,3 @@
+# The cron worker requires a private Bearer token on every POST.
+[functions.crypto-price-worker]
+verify_jwt = false
