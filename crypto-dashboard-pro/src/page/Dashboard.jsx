@@ -5,6 +5,9 @@ import {
   ArrowRightLeft,
   ArrowUpRight,
   BarChart3,
+  BellRing,
+  CircleUserRound,
+  Star,
   Coins,
   LayoutDashboard,
   Menu,
@@ -17,11 +20,16 @@ import { api } from "../services/api";
 import { CryptoChart } from "../components/CryptoChart";
 import { GlobalMetrics } from "../components/GlobalMetrics";
 import { CryptoConverter } from "../components/CryptoConverter";
+import { CryptoWorkspace } from "../components/CryptoWorkspace";
 
 const NAV_ITEMS = [
   { id: "overview", label: "Visão geral", icon: LayoutDashboard },
   { id: "markets", label: "Mercado de ativos", icon: Coins },
   { id: "converter", label: "Conversor", icon: ArrowRightLeft },
+  { id: "watchlist", label: "Favoritos", icon: Star },
+  { id: "alerts", label: "Alertas de preço", icon: BellRing },
+  { id: "inbox", label: "Notificações", icon: BellRing },
+  { id: "account", label: "Minha conta", icon: CircleUserRound },
 ];
 
 const HEADINGS = {
@@ -40,6 +48,10 @@ const HEADINGS = {
     title: "Conversor de criptomoedas",
     description: "Simule conversões com base nas últimas cotações disponíveis.",
   },
+  watchlist: { eyebrow: "MONITORAMENTO", title: "Meus favoritos", description: "Acompanhe os ativos salvos na sua conta." },
+  alerts: { eyebrow: "MONITORAMENTO", title: "Alertas de preço", description: "Configure limites de preço com verificação automática no servidor." },
+  inbox: { eyebrow: "NOTIFICAÇÕES", title: "Central de alertas", description: "Consulte os alertas disparados e o histórico de eventos." },
+  account: { eyebrow: "MINHA CONTA", title: "Sua conta CryptoOps", description: "Acesse seus dados e preferências de monitoramento." },
 };
 
 function formatMoney(value) {
@@ -257,7 +269,7 @@ export function Dashboard() {
             </button>
             <span className="breadcrumb-label">Painel</span>
             <span className="breadcrumb-slash">/</span>
-            <span className="breadcrumb-current">{activeTab === "overview" ? "Visão geral" : activeTab === "markets" ? "Mercado" : "Conversor"}</span>
+            <span className="breadcrumb-current">{NAV_ITEMS.find((item) => item.id === activeTab)?.label || "Painel"}</span>
           </div>
 
           <div className="topbar-actions">
@@ -271,6 +283,7 @@ export function Dashboard() {
               <RefreshCw size={16} className={refreshing ? "is-spinning" : ""} aria-hidden="true" />
               <span>Atualizar</span>
             </button>
+            <button type="button" className="icon-button account-shortcut" onClick={() => selectTab("account")} aria-label="Minha conta"><CircleUserRound size={19} /></button>
           </div>
         </header>
 
@@ -297,9 +310,11 @@ export function Dashboard() {
             </div>
           )}
 
-          {activeTab !== "converter" && <GlobalMetrics refreshKey={metricsRefresh} />}
+          {["overview", "markets"].includes(activeTab) && <GlobalMetrics refreshKey={metricsRefresh} />}
 
-          {loading ? (
+          {["watchlist", "alerts", "inbox", "account"].includes(activeTab) ? (
+            <CryptoWorkspace tab={activeTab} cryptos={cryptos} onSelectCoin={selectCoin} />
+          ) : loading ? (
             <div className="loading-panel" role="status" aria-live="polite">
               <div className="loading-spinner" />
               <strong>Preparando seu painel</strong>

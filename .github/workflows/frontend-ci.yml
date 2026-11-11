@@ -5,9 +5,11 @@ on:
     branches:
       - main
       - feat/corporate-responsive-dashboard
+      - feat/supabase-persistent-alerts
   pull_request:
     branches:
       - main
+      - feat/corporate-responsive-dashboard
 
 jobs:
   quality:
@@ -30,3 +32,17 @@ jobs:
         run: npm run lint
       - name: Production build
         run: npm run build
+
+  edge-function:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Typecheck alert worker
+        run: deno check supabase/functions/crypto-price-worker/index.ts
+      - name: Test alert thresholds
+        run: deno test supabase/functions/crypto-price-worker/alertRules.test.ts
