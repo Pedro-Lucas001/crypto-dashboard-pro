@@ -1,82 +1,62 @@
-import React, { useEffect, useState } from 'react';
-import { api } from '../services/api';
-import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip } from 'recharts';
+import { useEffect, useState } from "react";
+import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { api } from "../services/api";
+
+function money(value) {
+  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: value < 1 ? 6 : 2 }).format(value);
+}
 
 export function CryptoChart({ coinId, coinName }) {
   const [chartData, setChartData] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
-    async function loadChartData() {
+    const controller = new AbortController();
+    async function load() {
+      setLoading(true);
+      setError(false);
+      setChartData([]);
       try {
-        setLoading(true);
-        // Busca os dados históricos dos últimos 7 dias
-        const response = await api.get(`/coins/${coinId}/market_chart`, {
-          params: {
-            vs_currency: 'brl',
-            days: 7,
-          },
+        const { data } = await api.get("/coins/" + encodeURIComponent(coinId) + "/market_chart", {
+          params: { vs_currency: "brl", days: 7 },
+          signal: controller.signal,
         });
-
-        // Formata os dados para o Recharts (timestamp e preço)
-        const prices = response.data.prices.map(([timestamp, price]) => {
-          const date = new Date(timestamp);
-          return {
-            date: date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }),
-            price: price,
-          };
-        });
-
-        setChartData(prices);
-      } catch (error) {
-        console.error('Erro ao buscar dados do gráfico:', error);
+        if (!Array.isArray(data.prices)) throw new Error("Histórico inválido");
+        setChartData(data.prices.map(([timestamp, price]) => ({ timestamp, price })));
+      } catch (err) {
+        if (!controller.signal.aborted) {
+          console.error("Erro ao carregar gráfico:", err);
+          setError(true);
+        }
       } finally {
-        setLoading(false);
+        if (!controller.signal.aborted) setLoading(false);
       }
     }
-
-    if (coinId) {
-      loadChartData();
-    }
+    if (coinId) load();
+    return () => controller.abort();
   }, [coinId]);
 
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center h-64 bg-slate-900 border border-slate-800 rounded-xl">
-        <p className="text-slate-400 animate-pulse">A carregar gráfico histórico...</p>
-      </div>
-    );
-  }
+  if (loading) return <div className="chart-area chart-loading" role="status">Carregando histórico de {coinName}...</div>;
+  if (error || chartData.length === 0) return <div className="chart-area chart-loading" role="status">Histórico indisponível no momento.</div>;
 
   return (
-    <div className="bg-slate-900 border border-slate-800 p-5 rounded-xl">
-      <h3 className="text-lg font-semibold mb-4 text-slate-100">
-        Histórico de Preços (7 dias) - <span className="text-orange-500">{coinName}</span>
-      </h3>
-      <div className="w-full h-64">
-        <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={chartData}>
-            <defs>
-              <linearGradient id="colorPrice" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#f97316" stopOpacity={0.4} />
-                <stop offset="95%" stopColor="#f97316" stopOpacity={0} />
-              </linearGradient>
-            </defs>
-            <XAxis dataKey="date" stroke="#64748b" textAnchor="end" tick={{ fontSize: 12 }} />
-            <YAxis 
-              stroke="#64748b" 
-              domain={['auto', 'auto']} 
-              tick={{ fontSize: 12 }}
-              tickFormatter={(value) => `R$ ${value >= 1000 ? (value / 1000).toFixed(0) + 'k' : value}`}
-            />
-            <Tooltip 
-              contentStyle={{ backgroundColor: '#020617', borderColor: '#1e293b', borderRadius: '0.5rem', color: '#f8fafc' }}
-              formatter={(value) => [value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), 'Preço']}
-            />
-            <Area type="monotone" dataKey="price" stroke="#f97316" strokeWidth={2} fillOpacity={1} fill="url(#colorPrice)" />
-          </AreaChart>
-        </ResponsiveContainer>
-      </div>
+    <div className="chart-area" role="img" aria-label={"Gráfico de preços de " + coinName + " nos últimos sete dias"}>
+      <ResponsiveContainer width="100%" height="100%">
+        <AreaChart data={chartData} margin={{ top: 10, right: 9, left: -6, bottom: 0 }}>
+          <defs>
+            <linearGradient id="cryptoPriceFill" x1="0" x2="0" y1="0" y2="1">
+              <stop offset="0%" stopColor="#42d6a6" stopOpacity={0.29} />
+              <stop offset="95%" stopColor="#42d6a6" stopOpacity={0} />
+            </linearGradient>
+          </defs>
+          <CartesianGrid vertical={false} stroke="#243039" strokeDasharray="3 5" />
+          <XAxis dataKey="timestamp" type="number" domain={["dataMin", "dataMax"]} scale="time" tickFormatter={(time) => new Date(time).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })} minTickGap={30} axisLine={false} tickLine={false} tick={{ fill: "#748494", fontSize: 10 }} dy={10} />
+          <YAxis domain={["auto", "auto"]} tickFormatter={(v) => new Intl.NumberFormat("pt-BR", { notation: "compact", maximumFractionDigits: 1 }).format(v)} axisLine={false} tickLine={false} width={55} tick={{ fill: "#748494", fontSize: 10 }} />
+          <Tooltip labelFormatter={(time) => new Date(time).toLocaleString("pt-BR")} formatter={(value) => [money(value), "Preço"]} contentStyle={{ background: "#182029", border: "1px solid #35424e", borderRadius: 10, color: "#eaf0f5", fontSize: 12 }} labelStyle={{ color: "#a9b5c1" }} />
+          <Area type="monotone" dataKey="price" stroke="#48dcb0" strokeWidth={2.4} fill="url(#cryptoPriceFill)" dot={false} activeDot={{ r: 4 }} />
+        </AreaChart>
+      </ResponsiveContainer>
     </div>
   );
 }
