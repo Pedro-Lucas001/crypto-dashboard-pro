@@ -148,7 +148,7 @@ export function CryptoWorkspace({ tab, cryptos, onSelectCoin }) {
     execute(
       () => cryptoStore.addAlert(user.id, currentCoin, direction, amount, notifyEmail),
       "Alerta criado. A avaliação de preços ocorrerá na próxima execução agendada.",
-    ).then(() => setTargetPrice(""));
+    );
   }
 
   if (!supabaseConfigured) {
@@ -211,7 +211,7 @@ export function CryptoWorkspace({ tab, cryptos, onSelectCoin }) {
           <span><BellRing size={15} /> {alerts.filter((a) => a.is_active).length} alertas ativos</span>
           <span>{unread} não lidas</span>
         </div>
-        <button type="button" className="workspace-logout" onClick={() => execute(signOut, "Sessão encerrada.")}><LogOut size={16} /> Sair</button>
+        <button type="button" className="workspace-logout" onClick={async () => { setBusy(true); setError(""); try { await signOut(); setMessage("Sessão encerrada."); } catch (err) { setError(err.message || "Falha ao encerrar a sessão."); } finally { setBusy(false); } }}><LogOut size={16} /> Sair</button>
       </div>
       <Notice message={error} negative />
       <Notice message={message} />
