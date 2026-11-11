@@ -36,12 +36,21 @@ git clone https://github.com/Pedro-Lucas001/crypto-dashboard-pro.git
 # 2. Entrar na pasta do projeto
 cd crypto-dashboard-pro
 
+# 2.1. Entrar na pasta da aplicação
+cd crypto-dashboard-pro
+
 # 3. Instalar as dependências
 npm install
 
 # 4. Iniciar o servidor de desenvolvimento
 npm run dev
+
+# Verificar código e gerar build de produção
+npm run lint
+npm run build
 ```
+
+**Observação:** a aplicação está na subpasta `crypto-dashboard-pro/` do repositório. Os comandos npm devem ser executados nela.
 
 O projeto estará acessível no teu navegador através do endereço gerado no terminal (geralmente `http://localhost:5173`).
 
