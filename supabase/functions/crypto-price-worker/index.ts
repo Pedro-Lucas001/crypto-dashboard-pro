@@ -1,5 +1,6 @@
 // CryptoOps: server-only price alert worker.
 import { createClient } from "npm:@supabase/supabase-js@2.57.4";
+import { thresholdReached } from "./alertRules.ts";
 
 type PriceAlert = {
   id: string;
@@ -73,7 +74,7 @@ async function checkAlerts() {
     const observed = prices.get(alert.coin_id);
     if (!observed) { unavailable++; continue; }
     const threshold = Number(alert.target_price);
-    const hit = alert.direction === "above" ? observed >= threshold : observed <= threshold;
+    const hit = thresholdReached(alert.direction, observed, threshold);
     if (!hit) continue;
     // Only the winning worker updates an active alert; the SQL trigger inserts
     // the durable inbox event in this same transaction.
